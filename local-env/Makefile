@@ -70,3 +70,12 @@ smoke-clean: ## Xoá smoke test
 down: ## Xoá cluster (giữ lại network "kind")
 	kind delete cluster --name $(CLUSTER_NAME) --kubeconfig $(KUBECONFIG)
 	rm -f $(KUBECONFIG)
+
+stop: ## Dừng các node (giữ nguyên trạng thái, nhả RAM)
+	docker stop $$(kind get nodes --name $(CLUSTER_NAME))
+
+start: ## Bật lại các node đã dừng: control-plane trước, worker sau
+	docker start $(CLUSTER_NAME)-control-plane
+	docker start $$(kind get nodes --name $(CLUSTER_NAME) | grep -v control-plane)
+	kubectl wait --for=condition=Ready nodes --all --timeout=180s
+	kubectl get nodes -o wide
