@@ -1,0 +1,48 @@
+# Smoke test cho MetalLB: 1 namespace + 1 Deployment 2 pod + 1 Service type LoadBalancer.
+# Chỉ dùng để kiểm tra hạ tầng, xong thì xoá. Không phải một phần của app.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: lb-test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whoami
+  namespace: lb-test
+spec:
+  replicas: 2                      # 2 pod để thấy Service chia traffic
+  selector:
+    matchLabels:
+      app: whoami                  # Deployment quản lý những pod có label này
+  template:
+    metadata:
+      labels:
+        app: whoami                # phải khớp selector ở trên, nếu không apply sẽ báo lỗi
+    spec:
+      containers:
+        - name: whoami
+          image: traefik/whoami:v1.11.0
+          ports:
+            - name: http
+              containerPort: 80    # whoami mặc định nghe cổng 80
+          resources:               # khai báo tối thiểu, Phần 6 sẽ làm kỹ
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 32Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: whoami
+  namespace: lb-test
+spec:
+  type: LoadBalancer               # yêu cầu "cloud provider" (ở đây là MetalLB) cấp IP ngoài
+  selector:
+    app: whoami                    # Service gửi traffic tới mọi pod có label này
+  ports:
+    - name: http
+      port: 80                     # cổng trên IP của Service
+      targetPort: http             # trỏ theo TÊN cổng của container, đổi số cổng không phải sửa Service
