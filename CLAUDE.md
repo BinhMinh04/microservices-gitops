@@ -19,3 +19,13 @@ Code app nằm ở repo riêng `microservices-app`.
 
 ## Cấu trúc
 - `local-env/` cluster local · `bootstrap/` Argo CD · `platform/` add-on · `apps/` manifest app · `docs/`
+
+## App image (từ Phần 1)
+- Image: ghcr.io/binhminh04/microservices-app (public), tag = git short SHA, multi-arch amd64+arm64. Manifest pin digest INDEX.
+- Dockerfile ở gốc repo app, build context = gốc repo. Luôn chạy `docker build --check .` trước khi build.
+- Runtime: tini PID 1, USER 1000:1000, port mặc định 3001 (env PORT), SERVICEDIR=dist/services đã có sẵn trong image.
+- Env của app: SERVICES (api|categories|news), NODE_ENV (testing|production; dev sẽ tắt migration),
+  TRANSPORTER, CACHER, DB_NAME/DB_HOST/DB_PORT/DB_USER/DB_PASSWORD (KHÔNG phải DB_DATABASE), RUN_MIGRATIONS=false.
+- Lệnh migration: `sequelize-cli db:migrate` (đã có trong PATH, cwd /app vì .sequelizerc dùng đường dẫn tương đối).
+- Docker context phải là `orbstack`. kubectl luôn dùng KUBECONFIG=~/.kube/microlab.yaml.
+- Khi đưa lệnh shell cho user: không đặt comment `#` trong lệnh (zsh tương tác không hiểu); file dài thì đưa nguyên file bằng heredoc.
